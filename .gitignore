@@ -1,0 +1,105 @@
+# =======================================
+# Python / Flask Project .gitignore
+# =======================================
+
+# --- Python compiled files ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Virtual environments ---
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+
+# --- Flask / SQLAlchemy / SQLite ---
+instance/
+*.db
+*.sqlite
+*.sqlite3
+migrations/
+*.db-journal
+
+# --- Logs and runtime files ---
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.tmp
+*.bak
+*.swp
+*.swo
+*.DS_Store
+
+# --- Flask specific ---
+*.pid
+flask_session/
+.cache/
+*.dbm
+
+# --- Environment & Config ---
+.env
+.env.*
+.envrc
+secrets.json
+config.py
+config_local.py
+
+# --- IDE / Editor directories ---
+.vscode/
+.idea/
+*.iml
+
+# --- Jupyter / notebooks ---
+.ipynb_checkpoints/
+*.ipynb
+
+# --- OS specific ---
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# --- Distribution / packaging ---
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Unit test / coverage reports ---
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.tox/
+.mypy_cache/
+.pyre/
+.pytype/
+
+# --- Mail / Credentials (never commit these) ---
+*.pem
+*.crt
+*.key
+*_credentials.json
+*_secret.json
+*.mailconfig

@@ -1,11 +1,11 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import (
     create_access_token, create_refresh_token,
     jwt_required, get_jwt_identity
 )
 from models import db, User
 from utils import password_policy
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 api_bp = Blueprint("api", __name__)
 
@@ -14,10 +14,10 @@ api_bp = Blueprint("api", __name__)
 # --------------------------
 @api_bp.route("/register", methods=["POST"])
 def api_register():
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
-    email = data.get("email")
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+    email = (data.get("email") or "").strip()
 
     if not username or not password or not email:
         return jsonify({"error": "Username, email, and password required"}), 400
@@ -42,15 +42,22 @@ def api_register():
 # --------------------------
 @api_bp.route("/login", methods=["POST"])
 def api_login():
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+    data = request.get_json() or {}
+    current_app.logger.debug("api_login payload: %s", data)
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
 
     user = User.query.filter_by(username=username).first()
     if not user or not user.check_password(password):
         return jsonify({"error": "Invalid credentials"}), 401
 
-    access_token = create_access_token(identity={"username": username, "role": user.role}, expires_delta=timedelta(hours=1))
+    access_token = create_access_token(
+        identity={"username": username, "role": user.role},
+        expires_delta=timedelta(hours=1)
+    )
     refresh_token = create_refresh_token(identity={"username": username, "role": user.role})
 
     return jsonify({
@@ -80,7 +87,7 @@ def api_profile():
 @jwt_required()
 def admin_dashboard():
     current_user = get_jwt_identity()
-    if current_user["role"] != "admin":
+    if not current_user or current_user.get("role") != "admin":
         return jsonify({"error": "Access denied: admin role required"}), 403
     return jsonify({"message": "Welcome to the admin dashboard!"})
 
@@ -88,7 +95,6 @@ def admin_dashboard():
 # --------------------------
 # Token Refresh Endpoint
 # --------------------------
-from flask_jwt_extended import jwt_required as jwt_refresh_required
 @api_bp.route("/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh():
