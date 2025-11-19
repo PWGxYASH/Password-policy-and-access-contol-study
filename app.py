@@ -10,7 +10,7 @@ from flask import Blueprint, jsonify, request, current_app
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 
 app.secret_key = "supersecretkey"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JWT_SECRET_KEY"] = "jwtsecretkey"
 
@@ -20,12 +20,10 @@ app.config["MAIL_PORT"] = 587
 app.config["MAIL_USE_TLS"] = True
 app.config["MAIL_USERNAME"] = "your_email@gmail.com"       # Change this
 app.config["MAIL_PASSWORD"] = "your_email_app_password"    # Use app password, not main password
-app.config.update({
-    "SECRET_KEY": "dev-change-me",
-    "JWT_SECRET_KEY": "jwt-change-me",   # required by flask_jwt_extended
-    "SQLALCHEMY_DATABASE_URI": "sqlite:///dev.db",
-    "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-})
+
+# ---- Additional Config ----
+app.config["SECRET_KEY"] = "dev-change-me"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Initialize extensions
 db.init_app(app)
