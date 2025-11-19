@@ -8,14 +8,9 @@ db = SQLAlchemy()
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=True)
     password_hash = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default="user")  # admin, user, moderator, viewer
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Email verification
-    email_verified = db.Column(db.Boolean, default=False)
-    verification_token = db.Column(db.String(100), unique=True, nullable=True)
     
     # SMS/Phone verification (Twilio Authy)
     phone_number = db.Column(db.String(20), unique=True, nullable=True)
@@ -79,15 +74,6 @@ class User(db.Model):
         if self.password_expiry_date:
             return datetime.utcnow() > self.password_expiry_date
         return False
-    
-    def is_email_verified(self):
-        """Check email verification status"""
-        return self.email_verified
-    
-    def generate_verification_token(self):
-        """Generate email verification token"""
-        self.verification_token = secrets.token_urlsafe(32)
-        return self.verification_token
 
 
 class PasswordResetOTP(db.Model):

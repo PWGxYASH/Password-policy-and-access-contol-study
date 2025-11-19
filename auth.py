@@ -59,17 +59,11 @@ def admin_required(f):
 def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
-        email = request.form.get('email', '').strip()
         password = request.form.get('password', '').strip()
         
         # Validate inputs
-        if not all([username, email, password]):
+        if not all([username, password]):
             flash('All fields are required.', 'danger')
-            return render_template('register.html')
-        
-        # Check if user already exists
-        if User.query.filter_by(email=email).first():
-            flash('Email already registered.', 'danger')
             return render_template('register.html')
         
         if User.query.filter_by(username=username).first():
@@ -83,9 +77,8 @@ def register():
             return render_template('register.html')
         
         # Create new user
-        user = User(username=username, email=email)
+        user = User(username=username)
         user.set_password(password)
-        user.generate_verification_token()
         
         # Store initial password in history
         db.session.add(user)
@@ -98,7 +91,6 @@ def register():
         db.session.add(password_history)
         db.session.commit()
         
-        # Email verification skipped - using SMS verification instead
         log_audit(user.id, "signup", "success")
         
         flash('Registration successful! Please use SMS verification to proceed.', 'success')
@@ -106,28 +98,6 @@ def register():
     
     return render_template('register.html')
 
-
-@auth_bp.route('/verify-email/<token>', methods=['GET'])
-def verify_email(token):
-    print("DEBUG: VERIFY ROUTE HIT")
-    print("DEBUG: Token received:", token, flush=True)
-
-    user = User.query.filter_by(verification_token=token).first()
-    print("DEBUG: Found user:", user.email if user else None, flush=True)
-
-    if not user:
-        print("DEBUG: INVALID TOKEN", flush=True)
-        flash('Invalid or expired verification link.', 'danger')
-        return redirect(url_for('auth.login'))
-
-    user.email_verified = True
-    user.verification_token = None
-    db.session.commit()
-
-    print("DEBUG: Email VERIFIED ✔", flush=True)
-
-    flash('Email verified successfully! You can now log in.', 'success')
-    return redirect(url_for('auth.login'))
 
 
 
