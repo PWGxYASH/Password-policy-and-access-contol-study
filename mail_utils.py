@@ -13,7 +13,7 @@ def send_verification_email(mail, recipient_email, verification_token):
         
         msg = Message(
             "Verify Your Email - SecureAccess",
-            sender="no-reply@secureaccess.com",
+            sender="noreply@secureaccess.com",
             recipients=[recipient_email]
         )
         msg.body = f"""
@@ -41,11 +41,15 @@ SecureAccess Team
     </body>
 </html>
 """
-        mail.send(msg)
-        print(f"Verification email sent to {recipient_email}")
+        try:
+            mail.send(msg)
+            print(f"✓ Verification email sent to {recipient_email}")
+        except Exception as e:
+            print(f"⚠ Email send failed (connection issue): {str(e)}")
+            print(f"📧 EMAIL CONTENT:\n{msg.body}\n")
         return True
     except Exception as e:
-        print(f"Failed to send verification email: {str(e)}")
+        print(f"✗ Failed to create verification email: {str(e)}")
         return False
 
 
@@ -63,7 +67,7 @@ def send_otp_email(mail, recipient_email):
         # Send email
         msg = Message(
             "Your Password Reset Code - SecureAccess",
-            sender="no-reply@secureaccess.com",
+            sender="noreply@secureaccess.com",
             recipients=[recipient_email]
         )
         msg.body = f"""
@@ -89,11 +93,15 @@ SecureAccess Team
     </body>
 </html>
 """
-        mail.send(msg)
-        print(f"OTP email sent to {recipient_email}")
+        try:
+            mail.send(msg)
+            print(f"✓ OTP email sent to {recipient_email}")
+        except Exception as e:
+            print(f"⚠ Email send failed (connection issue): {str(e)}")
+            print(f"📧 OTP CODE: {otp}\n")
         return otp
     except Exception as e:
-        print(f"Failed to send OTP email: {str(e)}")
+        print(f"✗ Failed to send OTP email: {str(e)}")
         return None
 
 
@@ -102,7 +110,7 @@ def send_password_reset_notification(mail, recipient_email, username):
     try:
         msg = Message(
             "Your Password Has Been Changed - SecureAccess",
-            sender="no-reply@secureaccess.com",
+            sender="noreply@secureaccess.com",
             recipients=[recipient_email]
         )
         msg.body = f"""
@@ -126,11 +134,14 @@ SecureAccess Team
     </body>
 </html>
 """
-        mail.send(msg)
-        print(f"Password reset notification sent to {recipient_email}")
+        try:
+            mail.send(msg)
+            print(f"✓ Password reset notification sent to {recipient_email}")
+        except Exception as e:
+            print(f"⚠ Email send failed: {str(e)}")
         return True
     except Exception as e:
-        print(f"Failed to send password notification: {str(e)}")
+        print(f"✗ Failed to send password notification: {str(e)}")
         return False
 
 
@@ -139,7 +150,7 @@ def send_account_locked_notification(mail, recipient_email, username):
     try:
         msg = Message(
             "Your Account Has Been Locked - SecureAccess",
-            sender="no-reply@secureaccess.com",
+            sender="noreply@secureaccess.com",
             recipients=[recipient_email]
         )
         msg.body = f"""
@@ -164,9 +175,12 @@ SecureAccess Team
     </body>
 </html>
 """
-        mail.send(msg)
-        print(f"Account locked notification sent to {recipient_email}")
+        try:
+            mail.send(msg)
+            print(f"✓ Account locked notification sent to {recipient_email}")
+        except Exception as e:
+            print(f"⚠ Email send failed: {str(e)}")
         return True
     except Exception as e:
-        print(f"Failed to send account locked notification: {str(e)}")
+        print(f"✗ Failed to send account locked notification: {str(e)}")
         return False

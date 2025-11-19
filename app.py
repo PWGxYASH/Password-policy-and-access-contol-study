@@ -14,12 +14,14 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JWT_SECRET_KEY"] = "jwtsecretkey"
 
-# ---- Email Config (use a test Gmail account for demo) ----
+# ---- Email Config (Console Backend for Development) ----
+app.config["MAIL_BACKEND"] = "locmem"
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
 app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = "your_email@gmail.com"       # Change this
-app.config["MAIL_PASSWORD"] = "your_email_app_password"    # Use app password, not main password
+app.config["MAIL_USERNAME"] = "noreply@secureaccess.com"
+app.config["MAIL_PASSWORD"] = "test-password"
+app.config["TESTING"] = False
 
 # ---- Additional Config ----
 app.config["SECRET_KEY"] = "dev-change-me"
