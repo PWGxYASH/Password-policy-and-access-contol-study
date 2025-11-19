@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from models import db, User, PasswordResetOTP, PasswordHistory, AuditLog, UserSession
 from utils import password_policy
-from mail_utils import send_otp_email, send_verification_email as send_verification_mail
+from mail_utils import send_otp_email, send_verification_email as send_verification_mail, send_email_verified_confirmation
 from flask_mail import Mail
 from datetime import datetime, timedelta
 from functools import wraps
@@ -101,7 +101,9 @@ def register():
         db.session.commit()
         
         # Send verification email
+        print(f"DEBUG: About to send verification email to {user.email}", flush=True)
         send_verification_mail(mail, user.email, user.verification_token)
+        print(f"DEBUG: Verification email sent", flush=True)
         log_audit(user.id, "signup", "success")
         
         flash('Registration successful! Check your email to verify your account.', 'success')
@@ -122,6 +124,10 @@ def verify_email(token):
     user.email_verified = True
     user.verification_token = None
     db.session.commit()
+    
+    # Send verification confirmation email
+    print(f"DEBUG: Sending verification confirmation to {user.email}", flush=True)
+    send_email_verified_confirmation(mail, user.email, user.username)
     
     log_audit(user.id, "email_verified", "success")
     flash('Email verified successfully! You can now log in.', 'success')
