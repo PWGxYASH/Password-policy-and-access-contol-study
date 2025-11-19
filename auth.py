@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from models import db, User, PasswordResetOTP, PasswordHistory, AuditLog, UserSession
 from utils import password_policy
-from mail_utils import send_otp_email
+from mail_utils import send_otp_email, send_verification_email as send_verification_mail
 from flask_mail import Mail
 from datetime import datetime, timedelta
 from functools import wraps
@@ -101,7 +101,7 @@ def register():
         db.session.commit()
         
         # Send verification email
-        send_verification_email(user.email, user.verification_token)
+        send_verification_mail(mail, user.email, user.verification_token)
         log_audit(user.id, "signup", "success")
         
         flash('Registration successful! Check your email to verify your account.', 'success')
@@ -368,9 +368,4 @@ def admin_force_password_reset(user_id):
 
 
 # ===== Helper Email Functions =====
-
-def send_verification_email(email, token):
-    """Send email verification link"""
-    verification_url = url_for('auth.verify_email', token=token, _external=True)
-    # TODO: Implement email sending using mail_utils
-    print(f"Verification link: {verification_url}")  # For development
+# Email sending functions moved to mail_utils.py
