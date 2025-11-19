@@ -1,15 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from models import db, User, PasswordResetOTP, PasswordHistory, AuditLog, UserSession
 from utils import password_policy
-from mail_utils import send_otp_email, send_verification_email as send_verification_mail, send_email_verified_confirmation
-from flask_mail import Mail
+from sms_utils import send_verification_sms_console, verify_otp, send_verification_sms
 from datetime import datetime, timedelta
 from functools import wraps
 import secrets
-
+from flask import Flask
+import os
 auth_bp = Blueprint('auth', __name__)
-mail = Mail()
-
 # ===== Helper Functions =====
 
 def get_client_ip():
@@ -100,13 +98,10 @@ def register():
         db.session.add(password_history)
         db.session.commit()
         
-        # Send verification email
-        print(f"DEBUG: About to send verification email to {user.email}", flush=True)
-        send_verification_mail(mail, user.email, user.verification_token)
-        print(f"DEBUG: Verification email sent", flush=True)
+        # Email verification skipped - using SMS verification instead
         log_audit(user.id, "signup", "success")
         
-        flash('Registration successful! Check your email to verify your account.', 'success')
+        flash('Registration successful! Please use SMS verification to proceed.', 'success')
         return redirect(url_for('auth.login'))
     
     return render_template('register.html')
@@ -114,24 +109,28 @@ def register():
 
 @auth_bp.route('/verify-email/<token>', methods=['GET'])
 def verify_email(token):
-    """Verify email with token"""
+    print("DEBUG: VERIFY ROUTE HIT")
+    print("DEBUG: Token received:", token, flush=True)
+
     user = User.query.filter_by(verification_token=token).first()
-    
+    print("DEBUG: Found user:", user.email if user else None, flush=True)
+
     if not user:
+        print("DEBUG: INVALID TOKEN", flush=True)
         flash('Invalid or expired verification link.', 'danger')
         return redirect(url_for('auth.login'))
-    
+
     user.email_verified = True
     user.verification_token = None
     db.session.commit()
-    
-    # Send verification confirmation email
-    print(f"DEBUG: Sending verification confirmation to {user.email}", flush=True)
-    send_email_verified_confirmation(mail, user.email, user.username)
-    
-    log_audit(user.id, "email_verified", "success")
+
+    print("DEBUG: Email VERIFIED ✔", flush=True)
+
     flash('Email verified successfully! You can now log in.', 'success')
     return redirect(url_for('auth.login'))
+
+
+
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
@@ -346,6 +345,130 @@ def admin_lock_user(user_id):
     log_audit(session['user_id'], f"admin_lock_user_{user_id}", "success")
     flash(f'User {user.username} has been locked.', 'success')
     return redirect(url_for('auth.admin_user_detail', user_id=user_id))
+
+
+# ===== SMS/Twilio Authy Routes =====
+
+@auth_bp.route('/register-sms', methods=['GET', 'POST'])
+def register_sms():
+    """Register with SMS verification instead of email"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        phone_number = request.form.get('phone_number', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        # Validate inputs
+        if not all([username, phone_number, password]):
+            flash('All fields are required.', 'danger')
+            return render_template('register_sms.html')
+        
+        # Check if user already exists
+        if User.query.filter_by(username=username).first():
+            flash('Username already taken.', 'danger')
+            return render_template('register_sms.html')
+        
+        if User.query.filter_by(phone_number=phone_number).first():
+            flash('Phone number already registered.', 'danger')
+            return render_template('register_sms.html')
+        
+        # Validate password policy
+        valid, message = password_policy(password)
+        if not valid:
+            flash(message, 'danger')
+            return render_template('register_sms.html')
+        
+        # Create new user with phone verification
+        user = User(username=username, phone_number=phone_number)
+        user.set_password(password)
+        user.email_verified = True  # SMS verified, don't need email
+        user.phone_verified = False  # Need to verify phone
+        
+        db.session.add(user)
+        db.session.flush()
+        
+        # Store password in history
+        password_history = PasswordHistory(
+            user_id=user.id,
+            password_hash=user.password_hash
+        )
+        db.session.add(password_history)
+        db.session.commit()
+        
+        # Send SMS verification
+        # Use console version for development
+        from sms_utils import generate_otp
+        otp = generate_otp()
+        user.sms_otp = otp
+        user.sms_otp_expires_at = datetime.utcnow() + timedelta(minutes=5)
+        db.session.commit()
+        
+        # Print to console (development mode)
+        send_verification_sms_console(phone_number, username, otp)
+        
+        log_audit(user.id, "sms_signup", "success")
+        
+        flash('Account created! Enter the OTP sent to your phone.', 'success')
+        return redirect(url_for('auth.verify_sms_otp', user_id=user.id))
+    
+    return render_template('register_sms.html')
+
+
+@auth_bp.route('/verify-sms/<int:user_id>', methods=['GET', 'POST'])
+def verify_sms_otp(user_id):
+    """Verify SMS OTP code"""
+    user = User.query.get_or_404(user_id)
+    
+    if request.method == 'POST':
+        otp_code = request.form.get('otp', '').strip()
+        
+        if not otp_code:
+            flash('Please enter the OTP code.', 'danger')
+            return render_template('verify_sms.html', user=user)
+        
+        # Check if OTP is expired
+        if not user.sms_otp_expires_at or datetime.utcnow() > user.sms_otp_expires_at:
+            flash('OTP has expired. Request a new one.', 'danger')
+            return redirect(url_for('auth.request_new_otp', user_id=user.id))
+        
+        # Check if OTP is correct
+        if user.sms_otp != otp_code:
+            flash('Invalid OTP code. Try again.', 'danger')
+            return render_template('verify_sms.html', user=user)
+        
+        # OTP verified!
+        user.phone_verified = True
+        user.sms_otp = None
+        user.sms_otp_expires_at = None
+        db.session.commit()
+        
+        log_audit(user.id, "sms_verified", "success")
+        flash('Phone number verified! You can now log in.', 'success')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('verify_sms.html', user=user)
+
+
+@auth_bp.route('/request-otp/<int:user_id>', methods=['GET'])
+def request_new_otp(user_id):
+    """Request a new OTP code"""
+    user = User.query.get_or_404(user_id)
+    
+    # Generate new OTP
+    from sms_utils import generate_otp
+    otp = generate_otp()
+    user.sms_otp = otp
+    user.sms_otp_expires_at = datetime.utcnow() + timedelta(minutes=5)
+    db.session.commit()
+    
+    # Print to console
+    send_verification_sms_console(user.phone_number, user.username, otp)
+    
+    log_audit(user.id, "otp_requested", "success")
+    flash('New OTP sent to your phone!', 'success')
+    return redirect(url_for('auth.verify_sms_otp', user_id=user.id))
+
+
+
 
 
 @auth_bp.route('/admin/user/<int:user_id>/unlock', methods=['POST'])

@@ -4,7 +4,6 @@ from auth import auth_bp
 from api import api_bp
 from models import db
 from flask_jwt_extended import JWTManager
-from flask_mail import Mail
 import os
 from flask import Blueprint, jsonify, request, current_app
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
@@ -14,15 +13,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JWT_SECRET_KEY"] = "jwtsecretkey"
 
-# ---- Email Config (Console Backend for Development) ----
-app.config["MAIL_BACKEND"] = "locmem"
-app.config["MAIL_SERVER"] = "smtp.gmail.com"
-app.config["MAIL_PORT"] = 587
-app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = "noreply@secureaccess.com"
-app.config["MAIL_PASSWORD"] = "test-password"
-app.config["TESTING"] = False
-
 # ---- Additional Config ----
 app.config["SECRET_KEY"] = "dev-change-me"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -30,7 +20,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Initialize extensions
 db.init_app(app)
 jwt = JWTManager(app)
-mail = Mail(app)
 
 # Register blueprints
 app.register_blueprint(auth_bp)

@@ -17,6 +17,13 @@ class User(db.Model):
     email_verified = db.Column(db.Boolean, default=False)
     verification_token = db.Column(db.String(100), unique=True, nullable=True)
     
+    # SMS/Phone verification (Twilio Authy)
+    phone_number = db.Column(db.String(20), unique=True, nullable=True)
+    phone_verified = db.Column(db.Boolean, default=False)
+    authy_id = db.Column(db.String(50), unique=True, nullable=True)
+    sms_otp = db.Column(db.String(6), nullable=True)
+    sms_otp_expires_at = db.Column(db.DateTime, nullable=True)
+    
     # Account lockout
     failed_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)

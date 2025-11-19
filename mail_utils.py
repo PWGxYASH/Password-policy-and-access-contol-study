@@ -1,28 +1,33 @@
 from datetime import datetime, timedelta
 import random
 from models import db, PasswordResetOTP
-
+from flask_mail import Message
 def generate_otp():
     return str(random.randint(100000, 999999))
 
+
+
 def send_verification_email(mail, recipient_email, verification_token):
-    """Send email verification link - prints to console for development"""
+    print("DEBUG: Preparing to send real email...", flush=True)
+    print("DEBUG: Recipient:", recipient_email, flush=True)
+
     verification_url = f"http://localhost:5000/verify-email/{verification_token}"
-    
-    print("\n" + "="*70, flush=True)
-    print("📧 EMAIL: VERIFICATION EMAIL", flush=True)
-    print("="*70, flush=True)
-    print(f"To: {recipient_email}", flush=True)
-    print(f"Subject: Verify Your Email - SecureAccess", flush=True)
-    print("-"*70, flush=True)
-    print("Welcome to SecureAccess!", flush=True)
-    print("\nPlease verify your email by clicking the link below:", flush=True)
-    print(f"\n🔗 {verification_url}", flush=True)
-    print("\nThis link expires in 24 hours.", flush=True)
-    print("-"*70, flush=True)
-    print("✓ Verification email ready for {}\n".format(recipient_email), flush=True)
-    
-    return True
+
+    msg = Message(
+        subject="Verify Your Email",
+        recipients=[recipient_email]
+    )
+
+    msg.body = f"Click here to verify: {verification_url}"
+
+    try:
+        mail.send(msg)
+        print("DEBUG: Email SENT successfully ✔", flush=True)
+        return True
+    except Exception as e:
+        print("DEBUG: Email FAILED ❌", flush=True)
+        print("ERROR:", e, flush=True)
+        return False
 
 
 def send_otp_email(mail, recipient_email):
