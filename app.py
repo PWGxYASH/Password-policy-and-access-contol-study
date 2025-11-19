@@ -22,25 +22,25 @@ app.config["MAIL_USERNAME"] = "your_email@gmail.com"       # Change this
 app.config["MAIL_PASSWORD"] = "your_email_app_password"    # Use app password, not main password
 app.config.update({
     "SECRET_KEY": "dev-change-me",
-        "JWT_SECRET_KEY": "jwt-change-me",   # required by flask_jwt_extended
-            "SQLALCHEMY_DATABASE_URI": "sqlite:///dev.db",
-                "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-                })
-                # Initialize extensions
-                db.init_app(app)
-                jwt = JWTManager(app)
-                mail = Mail(app)
+    "JWT_SECRET_KEY": "jwt-change-me",   # required by flask_jwt_extended
+    "SQLALCHEMY_DATABASE_URI": "sqlite:///dev.db",
+    "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+})
 
-                # Register blueprints
-                app.register_blueprint(auth_bp)
-                app.register_blueprint(api_bp, url_prefix="/api")
+# Initialize extensions
+db.init_app(app)
+jwt = JWTManager(app)
+mail = Mail(app)
 
-                @app.route('/')
-                def index():
-                    return render_template('login.html')
+# Register blueprints
+app.register_blueprint(auth_bp)
+app.register_blueprint(api_bp, url_prefix="/api")
 
-                    # ...existing code...
-                    if __name__ == "__main__":
-                        with app.app_context():
-                                db.create_all()
-                                    app.run(host='0.0.0.0', port=5000, debug=True)
+@app.route('/')
+def index():
+    return render_template('register.html')
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+        app.run(host='0.0.0.0', port=5000, debug=True)

@@ -4,6 +4,7 @@
 
 # --- Python compiled files ---
 __pycache__/
+pycacher/
 *.py[cod]
 *$py.class
 
