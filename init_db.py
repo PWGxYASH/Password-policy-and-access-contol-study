@@ -1,6 +1,11 @@
-from app import app, db
+from app import app
+from models import db
 
-# Create app context and initialize database
+# ----- Initialize Database -----
 with app.app_context():
+    # Drop all tables if needed (optional)
+    # db.drop_all()
+
+    # Create tables based on models
     db.create_all()
-    print("Database recreated successfully with new schema!")
+    print("Database created successfully. You can now register your first user!")

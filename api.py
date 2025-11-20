@@ -1,103 +1,82 @@
-from flask import Blueprint, jsonify, request, current_app
-from flask_jwt_extended import (
-    create_access_token, create_refresh_token,
-    jwt_required, get_jwt_identity
-)
+from flask import Blueprint, request, jsonify
 from models import db, User
 from utils import password_policy
-from datetime import timedelta, datetime
+from sms_utils import generate_otp, send_verification_sms_console
+from datetime import datetime, timedelta
 
-api_bp = Blueprint("api", __name__)
+api_bp = Blueprint("api_bp", __name__)
 
-# --------------------------
-# User Registration (API)
-# --------------------------
 @api_bp.route("/register", methods=["POST"])
 def api_register():
     data = request.get_json() or {}
     username = (data.get("username") or "").strip()
+    phone_number = (data.get("phone_number") or "").strip()
     password = data.get("password") or ""
-    email = (data.get("email") or "").strip()
 
-    if not username or not password or not email:
-        return jsonify({"error": "Username, email, and password required"}), 400
+    if not username or not phone_number or not password:
+        return jsonify({"error": "All fields required"}), 400
+
+    if User.query.filter((User.username==username)|(User.phone_number==phone_number)).first():
+        return jsonify({"error": "Username or phone exists"}), 409
 
     valid, message = password_policy(password)
     if not valid:
         return jsonify({"error": message}), 400
 
-    if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
-        return jsonify({"error": "Username or email already exists"}), 409
-
-    user = User(username=username, email=email)
+    user = User(username=username, phone_number=phone_number)
     user.set_password(password)
+    user.phone_verified = False
     db.session.add(user)
+    db.session.flush()
+
+    # Generate OTP
+    otp = generate_otp()
+    user.sms_otp = otp
+    user.sms_otp_expires_at = datetime.utcnow() + timedelta(minutes=5)
     db.session.commit()
 
-    return jsonify({"message": "User registered successfully"}), 201
+    send_verification_sms_console(phone_number, username, otp)
+    return jsonify({"message": "User created! OTP sent to phone.", "user_id": user.id}), 201
 
+@api_bp.route("/verify_sms", methods=["POST"])
+def api_verify_sms():
+    data = request.get_json() or {}
+    user_id = data.get("user_id")
+    otp = data.get("otp")
 
-# --------------------------
-# User Login (API)
-# --------------------------
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if user.sms_otp_expires_at and datetime.utcnow() > user.sms_otp_expires_at:
+        return jsonify({"error": "OTP expired"}), 400
+
+    if user.sms_otp != otp:
+        return jsonify({"error": "Invalid OTP"}), 400
+
+    user.phone_verified = True
+    user.sms_otp = None
+    user.sms_otp_expires_at = None
+    db.session.commit()
+
+    return jsonify({"message": "Phone verified successfully"}), 200
+
 @api_bp.route("/login", methods=["POST"])
 def api_login():
     data = request.get_json() or {}
-    current_app.logger.debug("api_login payload: %s", data)
-    username = (data.get("username") or "").strip()
-    password = data.get("password") or ""
+    phone_number = data.get("phone_number")
+    password = data.get("password")
 
-    if not username or not password:
-        return jsonify({"error": "Username and password required"}), 400
+    user = User.query.filter_by(phone_number=phone_number).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    if not user.phone_verified:
+        return jsonify({"error": "Phone not verified"}), 403
+    if user.is_account_locked():
+        return jsonify({"error": "Account locked"}), 403
+    if not user.check_password(password):
+        user.increment_failed_attempts()
+        return jsonify({"error": "Invalid password"}), 400
 
-    user = User.query.filter_by(username=username).first()
-    if not user or not user.check_password(password):
-        return jsonify({"error": "Invalid credentials"}), 401
-
-    access_token = create_access_token(
-        identity={"username": username, "role": user.role},
-        expires_delta=timedelta(hours=1)
-    )
-    refresh_token = create_refresh_token(identity={"username": username, "role": user.role})
-
-    return jsonify({
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "user": {"username": username, "role": user.role}
-    }), 200
-
-
-# --------------------------
-# Protected Endpoint (JWT)
-# --------------------------
-@api_bp.route("/profile", methods=["GET"])
-@jwt_required()
-def api_profile():
-    current_user = get_jwt_identity()
-    return jsonify({
-        "message": "Access granted",
-        "user": current_user
-    })
-
-
-# --------------------------
-# Role-Based Access Example
-# --------------------------
-@api_bp.route("/admin/dashboard", methods=["GET"])
-@jwt_required()
-def admin_dashboard():
-    current_user = get_jwt_identity()
-    if not current_user or current_user.get("role") != "admin":
-        return jsonify({"error": "Access denied: admin role required"}), 403
-    return jsonify({"message": "Welcome to the admin dashboard!"})
-
-
-# --------------------------
-# Token Refresh Endpoint
-# --------------------------
-@api_bp.route("/refresh", methods=["POST"])
-@jwt_required(refresh=True)
-def refresh():
-    identity = get_jwt_identity()
-    access_token = create_access_token(identity=identity, expires_delta=timedelta(hours=1))
-    return jsonify({"access_token": access_token})
+    user.reset_failed_attempts()
+    return jsonify({"message": f"Welcome {user.username}!"}), 200
