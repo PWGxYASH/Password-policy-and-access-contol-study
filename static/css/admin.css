@@ -1,0 +1,51 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f8f9fa;
+    color: #333;
+}
+.container {
+    padding: 20px;
+    max-width: 800px;
+    margin: auto;
+}
+h2, h3 {
+    color: #2c3e50;
+}
+form {
+    background-color: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 5px;
+}
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+input[type="password"], select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+button:hover { background-color: #2980b9; }
+.delete-btn { background-color: #e74c3c; }
+.delete-btn:hover { background-color: #c0392b; }
+a { color: #3498db; text-decoration: none; }
+a:hover { text-decoration: underline; }
+nav { background: #2c3e50; padding: 10px; color: white; }
+nav a { color: white; margin-right: 15px; font-weight: bold; text-decoration: none; }
+nav a:hover { text-decoration: underline; }

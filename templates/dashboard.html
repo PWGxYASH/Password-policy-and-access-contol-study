@@ -72,8 +72,8 @@
     {% if user.role == 'admin' %}
         <div class="mt-4">
             <h4>Admin Panel</h4>
-            <a class="btn btn-primary" href="{{ url_for('auth.admin_users') }}">Manage Users</a>
-            <a class="btn btn-secondary" href="{{ url_for('auth.admin_audit_logs') }}">View Audit Logs</a>
+            <a class="btn btn-primary" href="{{ url_for('auth.admin_dashboard') }}">Manage Users</a>
+            <a class="btn btn-secondary" href="{{ url_for('auth.admin_logs') }}">View Audit Logs</a>
         </div>
     {% endif %}
 </div>

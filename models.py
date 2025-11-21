@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from ext import db  # shared instance
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -56,7 +56,7 @@ class User(db.Model):
     def is_password_expired(self):
         return self.password_expiry_date and datetime.utcnow() > self.password_expiry_date
 
-# OTP table for SMS verification or password resets
+
 class PasswordResetOTP(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(50), nullable=False)
@@ -64,17 +64,23 @@ class PasswordResetOTP(db.Model):
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
 class AuditLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False)
     action = db.Column(db.String(100), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
+
 # --- Auto-create last_login if missing (SQLite / dev friendly) ---
 def add_missing_columns():
     inspector = inspect(db.engine)
     columns = [c['name'] for c in inspector.get_columns('user')]
+
     if 'last_login' not in columns:
         with db.engine.connect() as conn:
-            conn.execute('ALTER TABLE user ADD COLUMN last_login DATETIME;')
+            conn.execute(text("ALTER TABLE user ADD COLUMN last_login DATETIME"))
             conn.commit()
+        print("[DB] Added last_login column.")
+    else:
+        print("[DB] last_login already exists.")

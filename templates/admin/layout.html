@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Admin Panel{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin:0; background:#f8f9fa; }
+        nav { background:#2c3e50; padding:10px; color:white; }
+        nav a { color:white; margin-right:15px; text-decoration:none; font-weight:bold; }
+        nav a:hover { text-decoration:underline; }
+        .container { padding:20px; }
+        table { width:100%; border-collapse:collapse; margin-top:20px; }
+        table, th, td { border:1px solid #ddd; }
+        th, td { padding:10px; text-align:left; }
+        th { background:#34495e; color:white; }
+        button { padding:5px 10px; cursor:pointer; }
+        button:hover { opacity:0.8; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('auth.admin_dashboard') }}">Manage Users</a>
+        <a href="{{ url_for('auth.admin_logs') }}">View Audit Logs</a>
+        <a href="{{ url_for('auth.logout') }}" style="float:right;">Logout</a>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
