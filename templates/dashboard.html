@@ -26,6 +26,7 @@
 <div class="container mt-5">
     <h2>Dashboard</h2>
 
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -37,10 +38,25 @@
         {% endif %}
     {% endwith %}
 
+    <!-- Password Expiry Warning -->
     {% if password_expiry_warning %}
         <div class="alert alert-warning">{{ password_expiry_warning }}</div>
     {% endif %}
 
+    <!-- Phone Number Prompts -->
+    {% if not user.phone_number %}
+        <div class="alert alert-warning">
+            You have not added a phone number yet.
+            <a href="{{ url_for('auth.add_phone') }}" class="btn btn-sm btn-primary ms-2">Add Phone Number</a>
+        </div>
+    {% elif not user.phone_verified %}
+        <div class="alert alert-warning">
+            Your phone number is not verified.
+            <a href="{{ url_for('auth.verify_sms_otp', user_id=user.id) }}" class="btn btn-sm btn-success ms-2">Verify Phone</a>
+        </div>
+    {% endif %}
+
+    <!-- Account Info Card -->
     <div class="card mt-3">
         <div class="card-body">
             <h5 class="card-title">Account Info</h5>
@@ -52,6 +68,7 @@
         </div>
     </div>
 
+    <!-- Admin Panel -->
     {% if user.role == 'admin' %}
         <div class="mt-4">
             <h4>Admin Panel</h4>
